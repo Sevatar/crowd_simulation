@@ -66,6 +66,55 @@
             gap: 20px;
         }
         
+        .canvas-container {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .canvas-wrapper {
+            flex: 1;
+        }
+        
+        .visualization-panel {
+            width: 250px;
+            background: rgba(0, 20, 40, 0.6);
+            padding: 25px;
+            border-radius: 10px;
+            border: 1px solid rgba(0, 255, 255, 0.2);
+        }
+        
+        .visualization-panel h3 {
+            color: #00ffff;
+            margin: 0 0 20px 0;
+            font-size: 18px;
+            font-weight: 600;
+        }
+        
+        .checkbox-control {
+            margin-bottom: 18px;
+        }
+        
+        .checkbox-control label {
+            display: flex;
+            align-items: center;
+            color: #e0e0e0;
+            font-size: 14px;
+            cursor: pointer;
+            transition: color 0.3s;
+        }
+        
+        .checkbox-control label:hover {
+            color: #00ffff;
+        }
+        
+        .checkbox-control input[type="checkbox"] {
+            margin-right: 12px;
+            width: 16px;
+            height: 16px;
+            accent-color: #00ffff;
+        }
+        
         .control-section {
             background: rgba(0, 20, 40, 0.6);
             padding: 20px;
@@ -528,11 +577,49 @@
         <h1>Crowd Simulation</h1>
         <p class="subtitle">Enhanced Wall Collision System - Agents Cannot Phase Through Walls</p>
         
-        <canvas id="simulationCanvas" width="960" height="540"></canvas>
-        
-        <div class="info-bar">
-            <span id="agentInfo">Agents: 0 | Walls: 0 | No destination set</span>
-            <span id="performanceInfo">FPS: 0 | Time: 0.0s | Pathfinding: 0.0ms</span>
+        <div class="canvas-container">
+            <div class="canvas-wrapper">
+                <canvas id="simulationCanvas" width="960" height="540"></canvas>
+                
+                <div class="info-bar">
+                    <span id="agentInfo">Agents: 0 | Walls: 0 | No destination set</span>
+                    <span id="performanceInfo">FPS: 0 | Time: 0.0s | Pathfinding: 0.0ms</span>
+                </div>
+            </div>
+            
+            <div class="visualization-panel">
+                <h3>Visualization</h3>
+                <div class="checkbox-control">
+                    <label>
+                        <input type="checkbox" id="showGrid">
+                        &nbsp;&nbsp;Grid
+                    </label>
+                </div>
+                <div class="checkbox-control">
+                    <label>
+                        <input type="checkbox" id="showPaths" checked>
+                        &nbsp;&nbsp;Paths
+                    </label>
+                </div>
+                <div class="checkbox-control">
+                    <label>
+                        <input type="checkbox" id="showVisionCones">
+                        &nbsp;&nbsp;Vision Cones
+                    </label>
+                </div>
+                <div class="checkbox-control">
+                    <label>
+                        <input type="checkbox" id="showCollisionCircles">
+                        &nbsp;&nbsp;Collision Circles
+                    </label>
+                </div>
+                <div class="checkbox-control">
+                    <label>
+                        <input type="checkbox" id="showCongestion">
+                        &nbsp;&nbsp;Congestion
+                    </label>
+                </div>
+            </div>
         </div>
         
         <div class="controls">
@@ -728,30 +815,6 @@
                     <button id="clearWallsBtn" class="danger-btn">Clear All Walls</button>
                     <button id="clearFiresBtn" class="danger-btn">Clear All Fires</button>
                     <button id="clearDestinationBtn" class="danger-btn">Clear Destination</button>
-                </div>
-            </div>
-            
-            <div class="control-section">
-                <h3>Visualization</h3>
-                <div class="checkbox-control">
-                    <input type="checkbox" id="showGrid">
-                    <label for="showGrid">Show Pathfinding Grid</label>
-                </div>
-                <div class="checkbox-control">
-                    <input type="checkbox" id="showPaths" checked>
-                    <label for="showPaths">Show Agent Paths</label>
-                </div>
-                <div class="checkbox-control">
-                    <input type="checkbox" id="showVisionCones">
-                    <label for="showVisionCones">Show Vision Cones</label>
-                </div>
-                <div class="checkbox-control">
-                    <input type="checkbox" id="showCollisionCircles">
-                    <label for="showCollisionCircles">Show Collision Circles</label>
-                </div>
-                <div class="checkbox-control">
-                    <input type="checkbox" id="showCongestion">
-                    <label for="showCongestion">Show Congestion</label>
                 </div>
             </div>
         </div>
@@ -3220,7 +3283,7 @@
         
         // Calculate congestion for each grid cell
         function calculateCongestion() {
-            if (!gridManager || !showCongestion) return;
+            if (!gridManager) return;
             
             // Reset all congestion values
             for (let y = 0; y < gridManager.rows; y++) {
@@ -3348,6 +3411,9 @@
         
         // Render function
         function render() {
+            // Calculate congestion for visualization
+            calculateCongestion();
+            
             // Clear canvas with dark background
             ctx.fillStyle = '#0a0a0a';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -4610,7 +4676,7 @@
             const systemPrompt = `You are a crowd simulation scenario generator. Generate a JSON response that describes a crowd evacuation scenario based on the user's prompt. 
 
 The response should include:
-1. walls: Array of wall objects with {x1, y1, x2, y2} coordinates (canvas is 800x600)
+1. walls: Array of wall objects with {x1, y1, x2, y2} coordinates (canvas is 960x540)
 2. agents: Array of agent objects with {x, y, type} where type is 0-4
 3. fires: Array of fire objects with {x, y} coordinates (USE STRATEGICALLY - see guidelines below)
 4. destination: Object with {x, y} coordinates for the exit
@@ -4634,6 +4700,20 @@ FIRE USAGE GUIDELINES:
 - Strategic placement: Block optimal escape routes to force agents to find alternatives
 - Realistic scenarios: Don't overuse fires - 1-3 fires per scenario is usually sufficient
 - Fire effects: Agents will avoid fires and may die if forced too close by crowds
+
+DOOR TOOL UNDERSTANDING:
+The simulation has a "Door Tool" that creates openings in existing walls by removing wall segments. When users mention doors, understand that:
+1. First, you should create solid walls to form rooms/buildings
+2. Then, the Door Tool can be used to create openings in those walls
+3. For AI generation, simulate this by breaking walls into segments with gaps
+
+OFFICE SCENARIO APPROACH:
+For "office with two doors" requests:
+1. Create rectangular walls forming the office perimeter
+2. Add smaller rectangular walls inside for desks/furniture
+3. Break the perimeter walls to create door openings (simulate Door Tool usage)
+4. Place agents inside the office
+5. Set destination outside the office
 
 CRITICAL: DOOR AND OPENING CREATION GUIDELINES:
 When the user mentions ANY of these keywords, you MUST create openings in walls:
@@ -4778,7 +4858,7 @@ Keep coordinates within canvas bounds (0-800 width, 0-600 height). Make realisti
             const systemPrompt = `You are a crowd simulation scenario generator. Generate a JSON response that describes a crowd evacuation scenario based on the user's prompt. 
 
 The response should include:
-1. walls: Array of wall objects with {x1, y1, x2, y2} coordinates (canvas is 800x600)
+1. walls: Array of wall objects with {x1, y1, x2, y2} coordinates (canvas is 960x540)
 2. agents: Array of agent objects with {x, y, type} where type is 0-4
 3. fires: Array of fire objects with {x, y} coordinates (USE STRATEGICALLY - see guidelines below)
 4. destination: Object with {x, y} coordinates for the exit
@@ -4790,6 +4870,32 @@ Agent types:
 - Type 2: Informed Navigator (orange) - Knows the full map, uses optimal pathfinding
 - Type 3: Follower (red-orange) - Follows nearest Type 2 agent using simple movement
 - Type 4: Smart Follower (purple) - Uses A* pathfinding to reach nearest Type 2 agent
+
+FIRE USAGE GUIDELINES:
+- Fires create danger zones that repel agents and can kill them if they get too close
+- Use fires to simulate:
+  * Building fires (place in rooms/corridors to block paths)
+  * Kitchen fires (place in kitchen areas)
+  * Electrical fires (place near equipment/server rooms)
+  * Vehicle fires (place in parking areas)
+  * Industrial accidents (place in factory/warehouse areas)
+- Strategic placement: Block optimal escape routes to force agents to find alternatives
+- Realistic scenarios: Don't overuse fires - 1-3 fires per scenario is usually sufficient
+- Fire effects: Agents will avoid fires and may die if forced too close by crowds
+
+DOOR TOOL UNDERSTANDING:
+The simulation has a "Door Tool" that creates openings in existing walls by removing wall segments. When users mention doors, understand that:
+1. First, you should create solid walls to form rooms/buildings
+2. Then, the Door Tool can be used to create openings in those walls
+3. For AI generation, simulate this by breaking walls into segments with gaps
+
+OFFICE SCENARIO APPROACH:
+For "office with two doors" requests:
+1. Create rectangular walls forming the office perimeter
+2. Add smaller rectangular walls inside for desks/furniture
+3. Break the perimeter walls to create door openings (simulate Door Tool usage)
+4. Place agents inside the office
+5. Set destination outside the office
 
 CRITICAL: DOOR AND OPENING CREATION GUIDELINES:
 When the user mentions ANY of these keywords, you MUST create openings in walls:
@@ -4806,7 +4912,7 @@ HOW TO CREATE OPENINGS:
 
 FIRE USAGE: Use fires strategically to block paths and create realistic evacuation challenges. Place 1-3 fires per scenario.
 
-Keep coordinates within canvas bounds (0-800 width, 0-600 height). Respond with ONLY the JSON, no additional text.`;
+Keep coordinates within canvas bounds (0-960 width, 0-540 height). Respond with ONLY the JSON, no additional text.`;
 
             const fullPrompt = `${systemPrompt}\n\nUser request: ${prompt}\n\nGenerate the JSON scenario:`;
             
@@ -5001,22 +5107,27 @@ Keep coordinates within canvas bounds (0-800 width, 0-600 height). Respond with 
         // Visualization controls
         document.getElementById('showGrid').addEventListener('change', (e) => {
             showGrid = e.target.checked;
+            render();
         });
         
         document.getElementById('showPaths').addEventListener('change', (e) => {
             showPaths = e.target.checked;
+            render();
         });
         
         document.getElementById('showVisionCones').addEventListener('change', (e) => {
             showVisionCones = e.target.checked;
+            render();
         });
         
         document.getElementById('showCollisionCircles').addEventListener('change', (e) => {
             showCollisionCircles = e.target.checked;
+            render();
         });
         
         document.getElementById('showCongestion').addEventListener('change', (e) => {
             showCongestion = e.target.checked;
+            render();
         });
         
         // Initialize
